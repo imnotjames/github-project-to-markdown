@@ -48,9 +48,9 @@ def print_markdown(repository):
                     labels = issue.labels
 
                     if issue.state == 'open':
-                        lines.append(f" * {issue.title} [#{issue.number}]({issue.html_url})")
+                        lines.append(f"  * {issue.title} [Github Issue #{issue.number}]({issue.html_url})")
                     else:
-                        lines.append(f" * ~~{issue.title} [#{issue.number}]({issue.html_url})~~")
+                        lines.append(f"  * ~~{issue.title} [Github Issue #{issue.number}]({issue.html_url})~~")
 
         lines.append("")
 
