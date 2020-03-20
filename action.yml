@@ -1,0 +1,26 @@
+# Github Actions YML file
+
+name: 'Github Milestones to Markdown'
+description: 'Write Github Milestones down as a Markdown File'
+
+branding:
+  icon: file-text
+  color: black
+
+inputs:
+  github_token:
+    description: The Github token to use for retrieving milestones.
+    required: true
+  github_repository:
+    description: The Github Repository to retrieve milestones from.
+    required: true
+  markdown_path:
+    required: true
+    description: The location at which a markdown file will be created.
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - --github-token=${{ inputs.github_token }}
+    - --output-file=${{ inputs.markdown_path }}
+    - ${{ inputs.github_repository }}

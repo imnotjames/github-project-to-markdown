@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "milestones-to-markdown"
+version = "0.1.0"
+description = ""
+authors = ["James Ward <james@notjam.es>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+python-dotenv = "^0.12.0"
+PyGithub = "^1.47"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+milestones-to-markdown = "milestones_to_markdown:cli"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
