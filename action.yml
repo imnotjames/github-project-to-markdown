@@ -26,5 +26,5 @@ runs:
   args:
     - --github-token=${{ inputs.github_token }}
     - --output-file=${{ inputs.markdown_path }}
+    - $(test "${{ inputs.project_number }}" && '--project-number ${{ inputs.project_number }}')
     - ${{ inputs.github_repository }}
-    - ${{ inputs.project_number }}
