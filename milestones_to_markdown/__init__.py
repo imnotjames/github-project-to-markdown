@@ -1,9 +1,11 @@
 import os
-from random import choice
+import re
 from argparse import ArgumentParser, FileType
+from collections import defaultdict
+from urllib.parse import urlparse, urlunparse
+from datetime import datetime
 
-
-from github import Github
+from github import Github, Repository, Project
 
 
 try:
@@ -13,49 +15,151 @@ except:
     pass
 
 
-def print_markdown(repository):
-    milestones = repository.get_milestones()
-    labels = repository.get_labels()
+def get_milestone_html_url(milestone):
+    milestone_api_url = milestone.url
 
-    seen_issues = set()
+    milestone_api_path = urlparse(milestone_api_url).path
+
+    matches = re.match(r'/repos/([^/]+)/([^/]+)/milestones/(\d+)', milestone_api_path)
+
+    org, repo, number = matches.groups()
+
+    milestone_path = f"{org}/{repo}/milestone/{number}"
+
+    return urlunparse(('https', 'github.com', milestone_path, '', '', ''))
+
+
+def get_card_content(card):
+    # We can't use lru_cache here because `card` is not hashable.
+    # Unfortunately.
+    # In place of that we're just using a memoization off of the
+    # function called.  It's hacky but.. well, better than nothing, right?
+
+    if not hasattr(get_card_content, '_card_content_memo'):
+        setattr(get_card_content, '_card_content_memo', {})
+    memo = getattr(get_card_content, '_card_content_memo')
+
+    if card.id not in memo:
+        try:
+            memo[card.id] = card.get_content()
+        except:
+            memo[card.id] = None
+
+    return memo.get(card.id, None)
+
+
+def format_card(card):
+    content = get_card_content(card)
+
+    if content:
+        line = f"{content.title} - [Issue #{content.number}]({content.html_url})"
+
+        if content.state == "closed":
+            line = f"~~{line}~~"
+    else:
+        line = card.note
+
+    line = f"{line}".strip()
+
+    if not line:
+        return None
+
+    line = line.replace("\n", " ")
+
+    return f"* {line}"
+
+
+def format_cards(cards):
+    return list(filter(None, [format_card(card) for card in cards]))
+
+
+def project_to_markdown(project : Project) -> str:
+    # For every column in the project we want to print out:
+    # * Milestones in order of appearance and the cards within in the order of appearance.
+    # * Non-milestone cards in order of appearance
 
     lines = []
 
-    for milestone in milestones:
-        lines.append(f"# {milestone.title}")
-        lines.append(f"**ETA {milestone.due_on}**")
+    body = project.body
 
-        lines.append("")
-        lines.append(milestone.description)
-        lines.append("")
+    # We've wrapped stuff in CDATA to prevent it from messing up the github pages.
+    # If there's anything that's CDATA let's pull it outta there.
+    body = re.sub(r'<!\[CDATA\[(.*?)\]\]>', '\g<1>', body, flags=re.MULTILINE | re.DOTALL)
 
-        for label in labels:
-            issues = repository.get_issues(milestone=milestone, labels=[label])
-
-            if issues.totalCount > 0:
-
-                if label.description:
-                    lines.append(f"* {label.name} - {label.description}")
-                else:
-                    lines.append(f"* {label.name}")
-
-                for issue in issues:
-                    if issue.id in seen_issues:
-                        continue
-
-                    seen_issues.add(issue.id)
-
-                    if issue.state == 'open':
-                        lines.append(f"  * {issue.title} [Github Issue #{issue.number}]({issue.html_url})")
-                    else:
-                        lines.append(f"  * ~~{issue.title} [Github Issue #{issue.number}]({issue.html_url})~~")
-
-        lines.append("")
+    lines.extend(body.strip().split("\n"))
 
     lines.append("---")
-    lines.append(f"For more information see [the Repository that this Roadmap was generated from.]({repository.html_url})")
+
+    lines.append("# Detailed Status")
+
+    for column in project.get_columns():
+        lines.append(f"## {column.name}")
+
+        cards_by_milestone = defaultdict(lambda: [])
+
+        milestones = []
+
+        # We first want to index every card by milestone
+        # while retaining the order.
+        for card in column.get_cards():
+            content = get_card_content(card)
+
+            milestone_id = None
+
+            if content:
+                milestone = content.milestone
+
+                if milestone:
+                    if milestone not in milestones:
+                        milestones.append(milestone)
+                    milestone_id = milestone.id
+
+            cards_by_milestone[milestone_id].append(card)
+
+        # Now for each of the milestones we want to pull related cards.
+        for milestone in milestones:
+            milestone_cards = cards_by_milestone.get(milestone.id)
+
+            milestone_url = get_milestone_html_url(milestone)
+
+            lines.append(f"### [{milestone.title}]({milestone_url})")
+
+            if milestone.due_on:
+                eta = milestone.due_on.date().isoformat()
+
+                lines.append(f"**ETA {eta}**")
+
+            if milestone.description:
+                lines.extend(milestone.description.split("\n"))
+
+            lines.append("")
+            lines.extend(format_cards(milestone_cards))
+            lines.append("")
+
+        # Place non-milestone related cards later.
+        if None in cards_by_milestone:
+            lines.append("### Miscellaneous Tasks")
+            lines.append("These tasks have no product features or milestones associated with them.")
+
+            lines.append("")
+            lines.extend(format_cards(cards_by_milestone.pop(None)))
+            lines.append("")
+
+    lines.append("---")
+    lines.append(f"For more information see [the Project that this Roadmap was generated from.]({project.html_url})")
 
     return '\n'.join(lines)
+
+
+def get_project(repository : Repository, **kwargs) -> Project:
+    projects = repository.get_projects()
+
+    # First search for the project by number..
+    for project in projects:
+        if all([getattr(project, key, None) == value  for key, value in kwargs.items()]):
+            return project
+
+    raise ValueError(f"Project not found")
 
 
 def cli():
@@ -63,6 +167,7 @@ def cli():
 
     parser.add_argument('--github-token', type=str, default=os.environ.get('GITHUB_TOKEN'))
     parser.add_argument('--output-file', type=FileType('w'))
+    parser.add_argument('--project-number', type=int)
     parser.add_argument('repository', type=str)
 
     args = parser.parse_args()
@@ -70,8 +175,16 @@ def cli():
     token = args.github_token
     repository = args.repository
     output_file = args.output_file
+    project_number = args.project_number
 
-    markdown = print_markdown(Github(token).get_repo(repository))
+    gh = Github(token)
+
+    if project_number:
+        project = get_project(gh.get_repo(repository), number=project_number)
+    else:
+        project = get_project(gh.get_repo(repository), name="Roadmap")
+
+    markdown = project_to_markdown(project)
 
     if output_file:
         output_file.write(markdown)
