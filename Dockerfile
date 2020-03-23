@@ -14,9 +14,9 @@ WORKDIR /app/
 
 COPY poetry.lock pyproject.toml ./
 
-COPY milestones_to_markdown ./milestones_to_markdown/
+COPY project_to_markdown ./project_to_markdown/
 
 RUN if [ "$APP_ENVIRONMENT" = "production" ]; then poetry install --no-dev; else poetry install; fi
 
-ENTRYPOINT [ "milestones-to-markdown"]
+ENTRYPOINT [ "project-to-markdown"]
 CMD []

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "milestones-to-markdown"
+name = "project-to-markdown"
 version = "0.1.0"
 description = ""
 authors = ["James Ward <james@notjam.es>"]
@@ -13,7 +13,7 @@ PyGithub = "^1.47"
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.scripts]
-milestones-to-markdown = "milestones_to_markdown:cli"
+project-to-markdown = "project_to_markdown:cli"
 
 [build-system]
 requires = ["poetry>=0.12"]
