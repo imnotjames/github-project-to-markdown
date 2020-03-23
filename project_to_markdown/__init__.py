@@ -88,6 +88,7 @@ def project_to_markdown(project : Project) -> str:
 
     lines.extend(body.strip().split("\n"))
 
+    lines.append("")
     lines.append("---")
 
     lines.append("# Detailed Status")
@@ -128,6 +129,7 @@ def project_to_markdown(project : Project) -> str:
                 eta = milestone.due_on.date().isoformat()
 
                 lines.append(f"**ETA {eta}**")
+                lines.append("")
 
             if milestone.description:
                 lines.extend(milestone.description.split("\n"))
