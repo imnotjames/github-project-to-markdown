@@ -91,10 +91,8 @@ def project_to_markdown(project : Project) -> str:
     lines.append("")
     lines.append("---")
 
-    lines.append("# Detailed Status")
-
     for column in project.get_columns():
-        lines.append(f"## {column.name}")
+        lines.append(f"# {column.name}")
 
         cards_by_milestone = defaultdict(lambda: [])
 
@@ -123,7 +121,7 @@ def project_to_markdown(project : Project) -> str:
 
             milestone_url = get_milestone_html_url(milestone)
 
-            lines.append(f"### [{milestone.title}]({milestone_url})")
+            lines.append(f"## [{milestone.title}]({milestone_url})")
 
             if milestone.due_on:
                 eta = milestone.due_on.date().isoformat()
@@ -140,7 +138,7 @@ def project_to_markdown(project : Project) -> str:
 
         # Place non-milestone related cards later.
         if None in cards_by_milestone:
-            lines.append("### Miscellaneous Tasks")
+            lines.append("## Miscellaneous Tasks")
             lines.append("These tasks have no product features or milestones associated with them.")
 
             lines.append("")
