@@ -19,12 +19,12 @@ inputs:
     required: true
   project_number:
     description: The Github Project to retrieve.
-    required: false
+    required: true
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
     - --github-token=${{ inputs.github_token }}
     - --output-file=${{ inputs.markdown_path }}
-    - $(test "${{ inputs.project_number }}" && '--project-number ${{ inputs.project_number }}')
+    - --project-number=${{ inputs.project_number }}
     - ${{ inputs.github_repository }}
