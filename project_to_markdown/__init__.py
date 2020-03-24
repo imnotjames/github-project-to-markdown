@@ -151,12 +151,22 @@ def project_to_markdown(project : Project) -> str:
     return '\n'.join(lines)
 
 
-def get_project(repository : Repository, **kwargs) -> Project:
-    projects = repository.get_projects()
+def get_project(github : Github, uri : str) -> Project:
+    project_selector = {}
+    project_path = urlparse(uri).path
+
+    if matches := re.match(r'^/orgs/([^/]+)/projects/(\d+)$', project_path):
+        # https://github.com/orgs/common-room/projects/1
+        projects = github.get_organization(matches.group(1)).get_projects()
+        project_selector['number'] = int(matches.group(2))
+    elif matches := re.match(r'^/([^/]+/[^/]+)/projects/(\d+)$', project_path):
+        # https://github.com/common-room/architecture-docs/projects/1
+        projects = github.get_repo(matches.group(1)).get_projects()
+        project_selector['number'] = int(matches.group(2))
 
     # First search for the project by number..
     for project in projects:
-        if all([getattr(project, key, None) == value  for key, value in kwargs.items()]):
+        if all([getattr(project, key, None) == value  for key, value in project_selector.items()]):
             return project
 
     raise ValueError(f"Project not found")
@@ -167,22 +177,17 @@ def cli():
 
     parser.add_argument('--github-token', type=str, default=os.environ.get('GITHUB_TOKEN'))
     parser.add_argument('--output-file', type=FileType('w'))
-    parser.add_argument('--project-number', type=int)
-    parser.add_argument('repository', type=str)
+    parser.add_argument('project_uri')
 
     args = parser.parse_args()
 
     token = args.github_token
-    repository = args.repository
     output_file = args.output_file
-    project_number = args.project_number
+    project_uri = args.project_uri
 
-    gh = Github(token)
+    github = Github(token)
 
-    if project_number:
-        project = get_project(gh.get_repo(repository), number=project_number)
-    else:
-        project = get_project(gh.get_repo(repository), name="Roadmap")
+    project = get_project(github, project_uri)
 
     markdown = project_to_markdown(project)
 
