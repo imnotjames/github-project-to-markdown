@@ -3,9 +3,8 @@ import re
 from argparse import ArgumentParser, FileType
 from collections import defaultdict
 from urllib.parse import urlparse, urlunparse
-from datetime import datetime
 
-from github import Github, Repository, Project
+from github import Github, Project
 
 
 try:
