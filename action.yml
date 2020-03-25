@@ -14,11 +14,8 @@ inputs:
   markdown_path:
     required: true
     description: The location at which a markdown file will be created.
-  github_repository:
-    description: The Github Repository to retrieve the project from.
-    required: true
-  project_number:
-    description: The Github Project to retrieve.
+  project_uri:
+    description: The URI for the Github project
     required: true
 runs:
   using: 'docker'
@@ -26,5 +23,4 @@ runs:
   args:
     - --github-token=${{ inputs.github_token }}
     - --output-file=${{ inputs.markdown_path }}
-    - --project-number=${{ inputs.project_number }}
-    - ${{ inputs.github_repository }}
+    - ${{ inputs.project_uri }}
