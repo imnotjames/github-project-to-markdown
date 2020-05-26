@@ -67,7 +67,9 @@ def format_card(card):
     if not line:
         return None
 
-    line = line.replace("\n", " ")
+    # If multiple lines let's space them out so they're properly handled as
+    # part of the list item
+    line = line.replace("\n", "\n  ")
 
     return f"* {line}"
 
