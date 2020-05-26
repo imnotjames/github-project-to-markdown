@@ -60,6 +60,10 @@ def format_card(card):
 
     line = f"{line}".strip()
 
+    # We've wrapped stuff in CDATA to prevent it from messing up the github pages.
+    # If there's anything that's CDATA let's pull it outta there.
+    line = re.sub(r'<!\[CDATA\[(.*?)\]\]>', '\g<1>', line, flags=re.MULTILINE | re.DOTALL)
+
     if not line:
         return None
 
