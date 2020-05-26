@@ -118,6 +118,12 @@ def project_to_markdown(project : Project) -> str:
 
             cards_by_milestone[milestone_id].append(card)
 
+        # Place non-milestone related cards first.
+        if None in cards_by_milestone:
+            lines.append("")
+            lines.extend(format_cards(cards_by_milestone.pop(None)))
+            lines.append("")
+
         # Now for each of the milestones we want to pull related cards.
         for milestone in milestones:
             milestone_cards = cards_by_milestone.get(milestone.id)
@@ -137,15 +143,6 @@ def project_to_markdown(project : Project) -> str:
 
             lines.append("")
             lines.extend(format_cards(milestone_cards))
-            lines.append("")
-
-        # Place non-milestone related cards later.
-        if None in cards_by_milestone:
-            lines.append("## Miscellaneous Tasks")
-            lines.append("These tasks have no product features or milestones associated with them.")
-
-            lines.append("")
-            lines.extend(format_cards(cards_by_milestone.pop(None)))
             lines.append("")
 
     lines.append("---")
